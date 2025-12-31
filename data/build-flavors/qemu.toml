@@ -6,7 +6,7 @@ image_format = "qcow2"
 
 packages = ["qemu-guest-agent", "cloud-init"]
 
-disk_size = 3
+disk_size = 20
 
 [[includes_chroot]]
   path = "opt/vyatta/etc/config.boot.default"

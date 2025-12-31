@@ -37,7 +37,7 @@ image_format = "iso"
 
 packages = ["qemu-guest-agent", "cloud-init"]
 
-disk_size = 3
+disk_size = 20
 
 [[includes_chroot]]
   path = "opt/vyatta/etc/config.boot.default"
@@ -105,7 +105,7 @@ image_format = "qcow2"
 
 packages = ["qemu-guest-agent", "cloud-init"]
 
-disk_size = 3
+disk_size = 20
 
 [[includes_chroot]]
   path = "opt/vyatta/etc/config.boot.default"
@@ -241,7 +241,7 @@ image_format = "qcow2"
 
 packages = ["qemu-guest-agent", "cloud-init"]
 
-disk_size = 3
+disk_size = 20
 
 [[includes_chroot]]
   path = "opt/vyatta/etc/config.boot.default"
@@ -375,7 +375,7 @@ qm set $VMID --efidisk0 ${DISK_STORAGE}:0,efitype=4m,pre-enrolled-keys=0
 Add VirtIO Block disk (virtio-blk):
 
 ```bash
-qm set $VMID --virtio0 ${DISK_STORAGE}:16,ssd=1,discard=on
+qm set $VMID --virtio0 ${DISK_STORAGE}:16,discard=on
 ```
 
 Attach the ISO as CD-ROM and set boot order:
@@ -421,7 +421,7 @@ scp ./vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2 root@<PVE_HOST>:/root
 VMID=9001
 DISK_STORAGE=local-lvm
 SNIPPET_STORAGE=local
-QCOW2=/root/vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2
+QCOW2=/root/vyos-1.5-rolling-<date-creation>-qemu-amd64.raw
 BRIDGE=vmbr0
 ```
 
@@ -451,14 +451,14 @@ qm importdisk $VMID $QCOW2 $DISK_STORAGE
 ```
 
 ```bash
-# Attach the imported disk as scsi
+# Attach the imported disk as virtio
 # NOTE: the exact volume name depends on your storage; list it with: qm config $VMID
-qm set $VMID --scsi0 ${DISK_STORAGE}:vm-${VMID}-disk-0,ssd=1,discard=on
+qm set $VMID --virtio0 ${DISK_STORAGE}:vm-${VMID}-disk-0,discard=on
 ```
 
 ```bash
 # Cloud-Init drive + DHCP IPv4
-qm set $VMID --scsi1 ${SNIPPET_STORAGE}:cloudinit
+qm set $VMID --scsi0 ${SNIPPET_STORAGE}:cloudinit
 qm set $VMID --ipconfig0 ip=dhcp
 ```
 
@@ -469,7 +469,7 @@ qm set $VMID --agent enabled=1
 
 ```bash
 # Boot from the imported disk
-qm set $VMID --boot order=scsi0
+qm set $VMID --boot order=virtio0
 ```
 
 ```bash
