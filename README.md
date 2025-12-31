@@ -94,7 +94,7 @@ interfaces {
   console_speed = 9600
 ```
 
-### ### Example QEMU File: `data/build-flavors/qemu.toml`
+### Example QEMU File: `data/build-flavors/qemu.toml`
 
 ```toml
 # QEMU build image
