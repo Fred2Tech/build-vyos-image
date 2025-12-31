@@ -1,5 +1,7 @@
 # Generic build image and iso files 
 
+build_type = "release"
+
 image_format = ["iso", "raw", "qcow2"]
 
 packages = ["qemu-guest-agent", "cloud-init"]

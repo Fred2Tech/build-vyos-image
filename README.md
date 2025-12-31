@@ -28,9 +28,11 @@ data/
 ### File: `data/build-flavors/generic.toml`
 
 ```toml
-# Generic build iso files 
+# Generic build image and iso files
 
-image_format = "iso"
+build_type = "release"
+
+image_format = ["iso", "raw", "qcow2"]
 
 packages = ["qemu-guest-agent", "cloud-init"]
 
@@ -141,12 +143,7 @@ cd vyos-build
 
 # Start a build container
 docker run --rm -it --privileged -v $(pwd):/vyos -v /dev:/dev -w /vyos vyos/vyos-build:current bash
-
-# Target image from the ISO
-cd build
 ```
-
-
 
 ## Create image by iso on Proxmox VE
 
@@ -173,6 +170,8 @@ pvesh create /nodes/<NODE>/storage/<ISO_STORAGE>/upload \
 ```
 
 ### 2) Create a new VM (UEFI/OVMF, VirtIO, Cloud-Init, DHCP)
+
+Note (Secure Boot): keep Secure Boot disabled for this VM. In Proxmox this means **do not** pre-enroll Secure Boot keys on the EFI disk.
 
 Pick a VM ID and basic variables:
 
@@ -203,7 +202,7 @@ qm create $VMID \
 Add EFI disk (required for UEFI/OVMF):
 
 ```bash
-qm set $VMID --efidisk0 ${DISK_STORAGE}:0,efitype=4m,pre-enrolled-keys=1
+qm set $VMID --efidisk0 ${DISK_STORAGE}:0,efitype=4m,pre-enrolled-keys=0
 ```
 
 Add VirtIO Block disk (virtio-blk):
@@ -237,3 +236,69 @@ Start the VM:
 ```bash
 qm start $VMID
 ```
+
+## Create VM by importing a QCOW2 image on Proxmox VE
+
+Example QCOW2: `vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2`
+
+### 1) Upload the QCOW2 to the Proxmox node
+
+```bash
+# From your workstation
+scp ./vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2 root@<PVE_HOST>:/root/
+```
+
+### 2) Create the VM (UEFI/OVMF, VirtIO, Cloud-Init, DHCP)
+
+```bash
+VMID=9001
+DISK_STORAGE=local-lvm
+SNIPPET_STORAGE=local
+QCOW2=/root/vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2
+BRIDGE=vmbr0
+
+# Create the VM shell (no disk yet)
+qm create $VMID \
+	--name vyos-qcow2-uefi \
+	--ostype l26 \
+	--machine q35 \
+	--bios ovmf \
+	--memory 2048 \
+	--cores 2 \
+	--cpu host \
+	--net0 virtio,bridge=$BRIDGE \
+	--serial0 socket \
+	--vga serial0
+
+# EFI disk (required for UEFI/OVMF)
+qm set $VMID --efidisk0 ${DISK_STORAGE}:0,efitype=4m,pre-enrolled-keys=0
+
+# Import the qcow2 into Proxmox storage (creates an "unused" disk)
+qm importdisk $VMID $QCOW2 $DISK_STORAGE
+
+# Attach the imported disk as scsi
+# NOTE: the exact volume name depends on your storage; list it with: qm config $VMID
+qm set $VMID --scsi0 ${DISK_STORAGE}:vm-${VMID}-disk-0,ssd=1,discard=on
+
+# Cloud-Init drive + DHCP IPv4
+qm set $VMID --scsi1 ${SNIPPET_STORAGE}:cloudinit
+qm set $VMID --ipconfig0 ip=dhcp
+
+# Enable QEMU guest agent
+qm set $VMID --agent enabled=1
+
+# Boot from the imported disk
+qm set $VMID --boot order=scsi0
+
+# Start
+qm start $VMID
+```
+
+If `vm-${VMID}-disk-0` is not the right volume name, run:
+
+```bash
+qm config $VMID
+```
+
+Then set `--virtio0` to the `unused0` volume shown there.
+
