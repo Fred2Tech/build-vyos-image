@@ -1,8 +1,8 @@
-# Generic build image 
+# QEMU build image
 
 build_type = "release"
 
-image_format = "iso"
+image_format = "qcow2"
 
 packages = ["qemu-guest-agent", "cloud-init"]
 
@@ -61,4 +61,3 @@ interfaces {
   console_type = "ttyS"
   console_num = 0
   console_speed = 9600
-
