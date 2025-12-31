@@ -28,9 +28,9 @@ data/
 ### File: `data/build-flavors/generic.toml`
 
 ```toml
-# Generic build image and iso files 
+# Generic build iso files 
 
-image_format = ["iso", "raw", "qcow2"]
+image_format = "iso"
 
 packages = ["qemu-guest-agent", "cloud-init"]
 
@@ -141,7 +141,12 @@ cd vyos-build
 
 # Start a build container
 docker run --rm -it --privileged -v $(pwd):/vyos -v /dev:/dev -w /vyos vyos/vyos-build:current bash
+
+# Target image from the ISO
+cd build
 ```
+
+
 
 ## Create image by iso on Proxmox VE
 
@@ -173,7 +178,6 @@ Pick a VM ID and basic variables:
 
 ```bash
 VMID=9000
-NODE=pve
 ISO_STORAGE=local
 DISK_STORAGE=local-lvm
 ISO_NAME=vyos-1.5-rolling-<date-creation>-generic-amd64.iso
@@ -185,7 +189,6 @@ Create the VM (UEFI + q35, virtio NIC, serial console):
 ```bash
 qm create $VMID \
 	--name vyos-uefi \
-	--node $NODE \
 	--ostype l26 \
 	--machine q35 \
 	--bios ovmf \
@@ -234,71 +237,3 @@ Start the VM:
 ```bash
 qm start $VMID
 ```
-
-## Create VM by importing a QCOW2 image on Proxmox VE
-
-Example QCOW2: `vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2`
-
-### 1) Upload the QCOW2 to the Proxmox node
-
-```bash
-# From your workstation
-scp ./vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2 root@<PVE_HOST>:/root/
-```
-
-### 2) Create the VM (UEFI/OVMF, VirtIO, Cloud-Init, DHCP)
-
-```bash
-VMID=9001
-NODE=pve
-DISK_STORAGE=local-lvm
-SNIPPET_STORAGE=local
-QCOW2=/root/vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2
-BRIDGE=vmbr0
-
-# Create the VM shell (no disk yet)
-qm create $VMID \
-	--name vyos-qcow2-uefi \
-	--node $NODE \
-	--ostype l26 \
-	--machine q35 \
-	--bios ovmf \
-	--memory 2048 \
-	--cores 2 \
-	--cpu host \
-	--net0 virtio,bridge=$BRIDGE \
-	--serial0 socket \
-	--vga serial0
-
-# EFI disk (required for UEFI/OVMF)
-qm set $VMID --efidisk0 ${DISK_STORAGE}:0,efitype=4m,pre-enrolled-keys=1
-
-# Import the qcow2 into Proxmox storage (creates an "unused" disk)
-qm importdisk $VMID $QCOW2 $DISK_STORAGE
-
-# Attach the imported disk as VirtIO Block (virtio-blk)
-# NOTE: the exact volume name depends on your storage; list it with: qm config $VMID
-qm set $VMID --virtio0 ${DISK_STORAGE}:vm-${VMID}-disk-0,ssd=1,discard=on
-
-# Cloud-Init drive + DHCP IPv4
-qm set $VMID --scsi0 ${SNIPPET_STORAGE}:cloudinit
-qm set $VMID --ipconfig0 ip=dhcp
-
-# Enable QEMU guest agent
-qm set $VMID --agent enabled=1
-
-# Boot from the imported disk
-qm set $VMID --boot order=virtio0
-
-# Start
-qm start $VMID
-```
-
-If `vm-${VMID}-disk-0` is not the right volume name, run:
-
-```bash
-qm config $VMID
-```
-
-Then set `--virtio0` to the `unused0` volume shown there.
-
