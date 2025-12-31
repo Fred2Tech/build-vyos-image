@@ -209,12 +209,14 @@ docker run --rm hello-world
 # Clone the vyos-build repository
 git clone https://github.com/vyos/vyos-build
 cd vyos-build
+```
 
+```bash
 # Start a build container
 docker run --rm -it --privileged -v $(pwd):/vyos -v /dev:/dev -w /vyos vyos/vyos-build:current bash
+```
 
-# or externa comand
-
+```bash
 # Example command to run the build via Docker
 export PARAMS=""
 sg docker 'docker run --rm -it -v /dev:/dev -v "$(pwd)":/vyos -w /vyos --privileged --sysctl net.ipv6.conf.lo.disable_ipv6=0 -e GOSU_UID=$(id -u) -e GOSU_GID=$(id -g) vyos/vyos-build:current bash -c "sudo make qemu -- $PARAMS"'
@@ -226,7 +228,10 @@ sg docker 'docker run --rm -it -v /dev:/dev -v "$(pwd)":/vyos -w /vyos --privile
 # Clone the vyos-build repository
 git clone https://github.com/vyos/vyos-build
 cd vyos-build
+```
 
+```bash
+# Create toml file QEMU
 cat << EOF > data/build-flavors/qemu.toml
 # QEMU build image
 
@@ -293,11 +298,19 @@ interfaces {
   console_speed = 9600
 
 EOF
+```
 
+```bash
 # Example command to run the build via Docker
 export PARAMS=""
 sg docker 'docker run --rm -it -v /dev:/dev -v "$(pwd)":/vyos -w /vyos --privileged --sysctl net.ipv6.conf.lo.disable_ipv6=0 -e GOSU_UID=$(id -u) -e GOSU_GID=$(id -g) vyos/vyos-build:current bash -c "sudo make qemu -- $PARAMS"'
 ```
+
+```bash
+# Target file
+cd build
+```
+
 
 ## Create image by iso on Proxmox VE
 
@@ -410,7 +423,9 @@ DISK_STORAGE=local-lvm
 SNIPPET_STORAGE=local
 QCOW2=/root/vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2
 BRIDGE=vmbr0
+```
 
+```bash
 # Create the VM shell (no disk yet)
 qm create $VMID \
 	--name vyos-qcow2-uefi \
@@ -423,27 +438,41 @@ qm create $VMID \
 	--net0 virtio,bridge=$BRIDGE \
 	--serial0 socket \
 	--vga serial0
+```
 
+```bash
 # EFI disk (required for UEFI/OVMF)
 qm set $VMID --efidisk0 ${DISK_STORAGE}:0,efitype=4m,pre-enrolled-keys=0
+```
 
+```bash
 # Import the qcow2 into Proxmox storage (creates an "unused" disk)
 qm importdisk $VMID $QCOW2 $DISK_STORAGE
+```
 
+```bash
 # Attach the imported disk as scsi
 # NOTE: the exact volume name depends on your storage; list it with: qm config $VMID
 qm set $VMID --scsi0 ${DISK_STORAGE}:vm-${VMID}-disk-0,ssd=1,discard=on
+```
 
+```bash
 # Cloud-Init drive + DHCP IPv4
 qm set $VMID --scsi1 ${SNIPPET_STORAGE}:cloudinit
 qm set $VMID --ipconfig0 ip=dhcp
+```
 
+```bash
 # Enable QEMU guest agent
 qm set $VMID --agent enabled=1
+```
 
+```bash
 # Boot from the imported disk
 qm set $VMID --boot order=scsi0
+```
 
+```bash
 # Start
 qm start $VMID
 ```
