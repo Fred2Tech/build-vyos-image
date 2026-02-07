@@ -47,8 +47,7 @@ system {
     login {
         user vyos {
             authentication {
-                encrypted-password $6$QxPS.uk6mfo$9QBSo8u1FkH16gMyAVhus6fU3LOzvLR9Z9.82m3tiHFAxTtIkhaZSWssSgzt4v4dGAL8rhVQxTg0oAG9/q11h/
-                plaintext-password ""
+                plaintext-password "vyos"
             }
             level admin
         }
@@ -115,8 +114,7 @@ system {
     login {
         user vyos {
             authentication {
-                encrypted-password $6$QxPS.uk6mfo$9QBSo8u1FkH16gMyAVhus6fU3LOzvLR9Z9.82m3tiHFAxTtIkhaZSWssSgzt4v4dGAL8rhVQxTg0oAG9/q11h/
-                plaintext-password ""
+                plaintext-password "vyos"
             }
             level admin
         }
@@ -251,8 +249,7 @@ system {
     login {
         user vyos {
             authentication {
-                encrypted-password $6$QxPS.uk6mfo$9QBSo8u1FkH16gMyAVhus6fU3LOzvLR9Z9.82m3tiHFAxTtIkhaZSWssSgzt4v4dGAL8rhVQxTg0oAG9/q11h/
-                plaintext-password ""
+                plaintext-password "vyos"
             }
             level admin
         }
@@ -324,8 +321,13 @@ Assumptions (adjust to your setup):
 Option A (copy ISO to the default ISO folder on the node):
 
 ```bash
-# From your workstation
+# From your workstation (deprecated command line)
 scp ./vyos-1.5-rolling-<date-creation>-generic-amd64.iso root@<PVE_HOST>:/var/lib/vz/template/iso/
+```
+
+```bash
+# From your workstation (new command line)
+echo "put ./vyos-1.5-rolling-<date-creation>-generic-amd64.iso /var/lib/vz/template/iso/" | sftp root@<PVE_HOST>
 ```
 
 Option B (upload via Proxmox API with `pvesh` on the node):
@@ -411,8 +413,13 @@ Example QCOW2: `vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2`
 ### 1) Upload the QCOW2 to the Proxmox node
 
 ```bash
-# From your workstation
-scp ./vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2 root@<PVE_HOST>:/root/
+# From your workstation (deprecated command line)
+scp ./vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2 root@<PVE_HOST>:/var/lib/vz/import/
+```
+
+```bash
+# From your workstation (new command line)
+echo "put ./vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2 /var/lib/vz/import/" | sftp root@<PVE_HOST>
 ```
 
 ### 2) Create the VM (UEFI/OVMF, VirtIO, Cloud-Init, DHCP)
