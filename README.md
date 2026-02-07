@@ -495,3 +495,60 @@ qm config $VMID
 
 Then set `--virtio0` to the `unused0` volume shown there.
 
+### 3) Create a VyOS template (UEFI/OVMF, multi-NIC)
+
+This example creates a VM from the imported disk, adds **two NICs** (`net0` and `net1` on the same bridge), then converts the VM to a **Proxmox template**.
+
+```bash
+# Variables (adapte selon ton environnement)
+VMID=9001
+DISK_STORAGE=local-lvm
+SNIPPET_STORAGE=local
+QCOW2=/var/lib/vz/import/vyos-1.5-rolling-<date-creation>-qemu-amd64.raw
+BRIDGE=vmbr0
+VMNAME=vyos-uefi-template
+
+# 1) Crée la VM (sans disque attaché pour l'instant)
+qm create $VMID \
+    --name ${VMNAME} \
+    --ostype l26 \
+    --bios ovmf \
+    --memory 2048 \
+    --cores 2 \
+    --cpu host \
+    --net0 virtio,bridge=$BRIDGE \
+    --serial0 socket \
+    --vga serial0
+
+# 2) Active le contrôleur SCSI recommandé (VirtIO SCSI PCI)
+qm set $VMID --scsihw virtio-scsi-pci
+
+# 3) Ajoute une 2ème interface réseau (multi-NIC)
+#    - net0 = 1ère carte (déjà créée)
+#    - net1 = 2ème carte
+qm set $VMID --net1 virtio,bridge=$BRIDGE
+
+# 4) Ajoute le disque EFI (obligatoire pour UEFI/OVMF)
+qm set $VMID --efidisk0 ${DISK_STORAGE}:0,efitype=4m,pre-enrolled-keys=0
+
+# 5) Importe l'image dans le storage Proxmox (crée un disque "unused")
+qm importdisk $VMID $QCOW2 $DISK_STORAGE
+
+# 6) Attache le disque importé comme disque principal
+#    NOTE: le nom exact peut varier; vérifie avec: qm config $VMID
+qm set $VMID --virtio0 ${DISK_STORAGE}:vm-${VMID}-disk-1,discard=on
+
+# 7) Ajoute Cloud-Init + IPv4 DHCP
+qm set $VMID --scsi0 ${DISK_STORAGE}:cloudinit
+qm set $VMID --ipconfig0 ip=dhcp
+
+# 8) Active l'agent QEMU
+qm set $VMID --agent enabled=1
+
+# 9) Boot sur le disque importé
+qm set $VMID --boot order=virtio0
+
+# 10) Convertit la VM en template Proxmox
+qm template $VMID
+```
+
