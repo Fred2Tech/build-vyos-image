@@ -427,7 +427,7 @@ echo "put ./vyos-1.5-rolling-<date-creation>-generic-amd64.qcow2 /var/lib/vz/imp
 VMID=9001
 DISK_STORAGE=local-lvm
 SNIPPET_STORAGE=local
-QCOW2=/root/vyos-1.5-rolling-<date-creation>-qemu-amd64.raw
+QCOW2=/var/lib/vz/import/vyos-1.5-rolling-<date-creation>-qemu-amd64.raw
 BRIDGE=vmbr0
 ```
 
