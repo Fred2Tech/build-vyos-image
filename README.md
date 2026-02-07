@@ -358,7 +358,6 @@ Create the VM (UEFI + q35, virtio NIC, serial console):
 qm create $VMID \
 	--name vyos-uefi \
 	--ostype l26 \
-	--machine q35 \
 	--bios ovmf \
 	--memory 2048 \
 	--cores 2 \
@@ -437,7 +436,6 @@ BRIDGE=vmbr0
 qm create $VMID \
 	--name vyos-qcow2-uefi \
 	--ostype l26 \
-	--machine q35 \
 	--bios ovmf \
 	--memory 2048 \
 	--cores 2 \
@@ -445,6 +443,11 @@ qm create $VMID \
 	--net0 virtio,bridge=$BRIDGE \
 	--serial0 socket \
 	--vga serial0
+```
+
+```bash
+# Set Controler virtio scsi pci
+qm set $VMID --scsihw virtio-scsi-pci
 ```
 
 ```bash
@@ -460,12 +463,12 @@ qm importdisk $VMID $QCOW2 $DISK_STORAGE
 ```bash
 # Attach the imported disk as virtio
 # NOTE: the exact volume name depends on your storage; list it with: qm config $VMID
-qm set $VMID --virtio0 ${DISK_STORAGE}:vm-${VMID}-disk-0,discard=on
+qm set $VMID --virtio0 ${DISK_STORAGE}:vm-${VMID}-disk-1,discard=on
 ```
 
 ```bash
 # Cloud-Init drive + DHCP IPv4
-qm set $VMID --scsi0 ${SNIPPET_STORAGE}:cloudinit
+qm set $VMID --scsi0 ${DISK_STORAGE}:cloudinit
 qm set $VMID --ipconfig0 ip=dhcp
 ```
 
